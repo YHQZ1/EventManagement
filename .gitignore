@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────
+#  GLOBAL IGNORE (frontend + backend)
+# ─────────────────────────────────────────
+
+# Node modules (both front & back)
+frontend/node_modules/
+backend/node_modules/
+
+# Build outputs (Vite / React / Backend)
+frontend/dist/
+frontend/.vite/
+frontend/.vite-cache/
+backend/dist/
+backend/build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables (never leak secrets)
+*.env
+*.env.local
+*.env.development.local
+*.env.production.local
+*.env.test.local
+
+# macOS system junk
+.DS_Store
+
+# Windows system junk
+Thumbs.db
+
+# IDE/editor folders
+.vscode/
+.idea/
+*.swp
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+*.pid
+*.seed
+
+# DB or file uploads (backend)
+backend/uploads/
+backend/data/
+backend/*.db
+backend/*.sqlite
+
+# TypeScript artifact (if you add TS later)
+*.tsbuildinfo
