@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 
-// Import routes
 import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/events.js";
 import eventInterestRoutes from "./routes/eventInterest.js";
@@ -13,64 +12,43 @@ dotenv.config();
 
 const app = express();
 
-// CORS configuration
-// Simpler CORS configuration
 const corsOptions = {
-  origin:
-    process.env.NODE_ENV === "production"
-      ? [
-          "https://event-management-delta-teal.vercel.app",
-          // Add other production domains here
-        ]
-      : [
-          "http://localhost:3000",
-          "http://localhost:5173",
-          "http://localhost:8080",
-        ],
+  origin: ['http://localhost:5173', 'https://event-management-delta-teal.vercel.app'],
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 
 app.use(cors(corsOptions));
-
-// Handle preflight requests
-app.options("*", cors(corsOptions));
-
-// Middleware
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/event-interests", eventInterestRoutes);
 app.use("/api/email", emailRoutes);
 
-// Health check
 app.get("/api/health", (req, res) => {
   res.json({
-    message: "🚀 ISKCON Event Management System API is running!",
+    message: "ISKCON Event Management System API is running!",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
   });
 });
 
-// Connect to MongoDB
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log("✅ MongoDB connected successfully");
+    console.log("MongoDB connected successfully");
   } catch (error) {
-    console.error("❌ MongoDB connection failed:", error.message);
+    console.error("MongoDB connection failed:", error.message);
     process.exit(1);
   }
 };
 
-// Start server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, async () => {
   await connectDB();
-  console.log(`🎉 Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });
