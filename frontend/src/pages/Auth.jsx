@@ -9,23 +9,20 @@ const Auth = () => {
   const [isAdminRegister, setIsAdminRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [checkedAuth, setCheckedAuth] = useState(false);
 
-  const { login, register, registerAdmin, isAuthenticated } = useAuth();
+  const { login, register, registerAdmin, user } = useAuth();
   const navigate = useNavigate();
 
-  // Use useEffect for navigation to avoid setState during render
+  // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !checkedAuth) {
-      navigate('/dashboard');
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/user-dashboard');
+      }
     }
-    setCheckedAuth(true);
-  }, [isAuthenticated, checkedAuth, navigate]);
-
-  // Don't render anything until we've checked authentication
-  if (isAuthenticated) {
-    return null;
-  }
+  }, [user, navigate]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -59,7 +56,8 @@ const Auth = () => {
       }
 
       if (result.success) {
-        navigate('/dashboard');
+        // The useEffect above will handle the redirect based on user role
+        // No need to navigate here, it will happen automatically
       } else {
         setMessage(result.error);
       }
@@ -94,6 +92,11 @@ const Auth = () => {
     });
   };
 
+  // Don't render if user is authenticated (redirect will happen)
+  if (user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-stone-50 to-orange-100 relative overflow-hidden">
       {/* Decorative elements */}
@@ -107,7 +110,11 @@ const Auth = () => {
           <div className="hidden lg:block">
             <div className="bg-gradient-to-br from-[#ab5244] to-[#8f4437] rounded-3xl p-12 shadow-2xl transform hover:scale-105 transition duration-500">
               <div className="flex items-center gap-3 mb-8">
-                <Sparkles className="text-white" size={40} />
+                <img 
+    src="./public/iskcon_logo.jpg" // or your logo path
+    alt="ISKCON Logo"
+    className="w-12 h-12 object-contain"
+  />
                 <h1 className="text-3xl font-bold text-white">ISKCON Events</h1>
               </div>
               
@@ -155,7 +162,11 @@ const Auth = () => {
 
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4 lg:hidden">
-                  <Sparkles className="text-[#ab5244]" size={32} />
+                  <img 
+    src="./public/iskcon_logo.jpg" // or your logo path
+    alt="ISKCON Logo"
+    className="w-12 h-12 object-contain"
+  />
                   <h1 className="text-2xl font-bold text-gray-900">ISKCON Events</h1>
                 </div>
                 

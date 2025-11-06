@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Bell, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext'; // Import useAuth
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth(); // Get user from context
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -59,13 +61,23 @@ const Navbar = () => {
             <button className="text-iskcon-white hover:text-iskcon-gold transition-colors">
               <Bell size={20} />
             </button>
-            <Link
-              to="/auth"
-              className="bg-iskcon-blue text-iskcon-white px-6 py-2 rounded-full hover:bg-iskcon-maroon transition-colors flex items-center space-x-2"
-            >
-              <User size={16} />
-              <span>Login</span>
-            </Link>
+            {user ? (
+              <Link
+                to={user.role === 'admin' ? '/admin-dashboard' : '/user-dashboard'}
+                className="bg-iskcon-blue text-iskcon-white px-6 py-2 rounded-full hover:bg-iskcon-maroon transition-colors flex items-center space-x-2"
+              >
+                <User size={16} />
+                <span>Dashboard</span>
+              </Link>
+            ) : (
+              <Link
+                to="/auth"
+                className="bg-iskcon-blue text-iskcon-white px-6 py-2 rounded-full hover:bg-iskcon-maroon transition-colors flex items-center space-x-2"
+              >
+                <User size={16} />
+                <span>Login</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -98,13 +110,23 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="pt-4 border-t border-iskcon-white border-opacity-20">
-                <Link
-                  to="/auth"
-                  className="block px-3 py-2 text-iskcon-white hover:bg-iskcon-blue rounded-md"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Login / Register
-                </Link>
+                {user ? (
+                  <Link
+                    to={user.role === 'admin' ? '/admin-dashboard' : '/user-dashboard'}
+                    className="block px-3 py-2 text-iskcon-white hover:bg-iskcon-blue rounded-md"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    to="/auth"
+                    className="block px-3 py-2 text-iskcon-white hover:bg-iskcon-blue rounded-md"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Login / Register
+                  </Link>
+                )}
               </div>
             </div>
           </div>

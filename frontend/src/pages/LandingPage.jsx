@@ -17,7 +17,11 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Sparkles className="text-[#ab5244]" size={28} />
+              <img 
+    src="./public/iskcon_logo.jpg" // or your logo path
+    alt="ISKCON Logo"
+    className="w-12 h-12 object-contain"
+  />
               <h1 className="text-2xl font-bold text-gray-900">ISKCON Events</h1>
             </div>
             <nav className="hidden md:flex items-center gap-8 text-gray-700">
@@ -232,18 +236,7 @@ const LandingPage = () => {
       </section>
 
       {/* Join Section */}
-      <section className="py-24 bg-gradient-to-br from-orange-50 to-stone-100">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Join Us in Creating a Better Spiritual Community
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Be part of a movement that brings devotees together through meaningful events and shared experiences
-            </p>
-          </div>
-        </div>
-      </section>
+``
 
       {/* Events Section */}
       <section id="events" className="py-24 bg-white">
@@ -262,7 +255,7 @@ const LandingPage = () => {
 </section>
 
       {/* CTA Section */}
-      <section className="relative py-24 bg-gradient-to-br from-[#ab5244] to-[#8f4437] overflow-hidden">
+      {/* <section className="relative py-24 bg-gradient-to-br from-[#ab5244] to-[#8f4437] overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <div className="relative max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
@@ -287,7 +280,7 @@ const LandingPage = () => {
         </div>
         <div className="absolute top-10 right-10 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-10 left-10 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl"></div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 py-12">
@@ -295,7 +288,11 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="text-[#ab5244]" size={24} />
+                <img 
+    src="./public/iskcon_logo.jpg" // or your logo path
+    alt="ISKCON Logo"
+    className="w-12 h-12 object-contain"
+  />
                 <h3 className="text-xl font-bold text-white">ISKCON Events</h3>
               </div>
               <p className="text-gray-400">
