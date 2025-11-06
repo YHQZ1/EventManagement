@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 
 // Import routes
 import authRoutes from './routes/auth.js';
+import eventRoutes from './routes/events.js'; // Add this line
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes); // Add this line
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -37,7 +39,7 @@ const connectDB = async () => {
 };
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, async () => {
   await connectDB();
   console.log(`🎉 Server running on port ${PORT}`);
