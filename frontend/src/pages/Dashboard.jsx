@@ -17,7 +17,13 @@ import {
   Settings,
   Crown,
   Trash2,
-  Edit3
+  Edit3,
+  Calendar,
+  Plus,
+  MapPin,
+  Clock,
+  Heart,
+  ArrowRight
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -26,6 +32,64 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [eventFormData, setEventFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    location: '',
+    category: 'kirtan',
+    maxParticipants: 0,
+    image: ''
+  });
+
+  // Event functions
+  const fetchEvents = async () => {
+    try {
+      const response = await axios.get('http://localhost:5001/api/events');
+      setEvents(response.data);
+    } catch (error) {
+      setMessage('Failed to fetch events');
+    }
+  };
+
+  const createEvent = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await axios.post('http://localhost:5001/api/events', eventFormData);
+      setMessage('Event created successfully!');
+      setEventFormData({
+        title: '',
+        description: '',
+        date: '',
+        time: '',
+        location: '',
+        category: 'kirtan',
+        maxParticipants: 0,
+        image: ''
+      });
+      setActiveTab('events');
+      fetchEvents();
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Failed to create event');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteEvent = async (eventId) => {
+    if (window.confirm('Are you sure you want to delete this event?')) {
+      try {
+        await axios.delete(`http://localhost:5001/api/events/${eventId}`);
+        setMessage('Event deleted successfully');
+        fetchEvents();
+      } catch (error) {
+        setMessage(error.response?.data?.message || 'Failed to delete event');
+      }
+    }
+  };
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -48,6 +112,14 @@ const Dashboard = () => {
   const handleChange = (e) => {
     setFormData({
       ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // Handle event form changes
+  const handleEventChange = (e) => {
+    setEventFormData({
+      ...eventFormData,
       [e.target.name]: e.target.value
     });
   };
@@ -120,6 +192,44 @@ const Dashboard = () => {
     }
   };
 
+  // Category icons and colors
+  const categoryIcons = {
+    kirtan: Calendar,
+    festival: Heart,
+    study: Users,
+    seva: Heart,
+    other: Calendar
+  };
+
+  const categoryColors = {
+    kirtan: 'from-[#ab5244] to-[#8f4437]',
+    festival: 'from-orange-400 to-[#ab5244]',
+    study: 'from-amber-400 to-orange-500',
+    seva: 'from-green-400 to-emerald-500',
+    other: 'from-purple-400 to-purple-500'
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getCategoryDisplayName = (category) => {
+    const categoryNames = {
+      kirtan: 'Weekly Kirtan',
+      festival: 'Festival Celebration',
+      study: 'Study Group',
+      seva: 'Seva Opportunity',
+      other: 'Special Event'
+    };
+    return categoryNames[category] || category;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-stone-50 to-orange-100 relative overflow-hidden">
       {/* Decorative elements */}
@@ -132,7 +242,6 @@ const Dashboard = () => {
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-6">
-                
                 <div className="flex items-center gap-3">
                   <Sparkles className="text-[#ab5244]" size={32} />
                   <h1 className="text-2xl font-bold text-gray-900">ISKCON Dashboard</h1>
@@ -179,6 +288,22 @@ const Dashboard = () => {
                 My Profile
               </button>
 
+              {/* Events tab for all users */}
+              <button
+                onClick={() => {
+                  setActiveTab('events');
+                  fetchEvents();
+                }}
+                className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+                  activeTab === 'events'
+                    ? 'bg-[#ab5244] text-white shadow-lg'
+                    : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+                }`}
+              >
+                <Calendar size={18} />
+                Events
+              </button>
+
               {user.role === 'admin' && (
                 <>
                   <button
@@ -216,6 +341,17 @@ const Dashboard = () => {
                   >
                     <UserPlus size={18} />
                     Register Admin
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('createEvent')}
+                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+                      activeTab === 'createEvent'
+                        ? 'bg-[#ab5244] text-white shadow-lg'
+                        : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+                    }`}
+                  >
+                    <Plus size={18} />
+                    Create Event
                   </button>
                 </>
               )}
@@ -286,6 +422,271 @@ const Dashboard = () => {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Events Tab (All Users) */}
+          {activeTab === 'events' && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+              <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center gap-3">
+                  <Calendar className="text-[#ab5244]" size={32} />
+                  <h2 className="text-3xl font-bold text-gray-900">
+                    {user.role === 'admin' ? 'Manage Events' : 'Upcoming Events'}
+                  </h2>
+                </div>
+                <span className="bg-orange-100 text-orange-800 px-4 py-2 rounded-full font-semibold">
+                  {events.length} events
+                </span>
+              </div>
+              
+              {events.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {events.map((event) => {
+                    const IconComponent = categoryIcons[event.category] || Calendar;
+                    const gradientClass = categoryColors[event.category] || 'from-[#ab5244] to-[#8f4437]';
+                    
+                    return (
+                      <div 
+                        key={event._id} 
+                        className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 group transform hover:-translate-y-1 border border-orange-200"
+                      >
+                        <div className={`h-40 bg-gradient-to-br ${gradientClass} flex items-center justify-center relative overflow-hidden`}>
+                          <IconComponent className="text-white transform group-hover:scale-110 transition-transform duration-300" size={48} />
+                          
+                          {/* Event status badge */}
+                          <div className="absolute top-3 right-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              event.status === 'upcoming' 
+                                ? 'bg-green-100 text-green-800' 
+                                : event.status === 'ongoing'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                            </span>
+                          </div>
+
+                          {/* Participants count */}
+                          {event.maxParticipants > 0 && (
+                            <div className="absolute bottom-3 left-3">
+                              <span className="bg-black/30 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                                {event.currentParticipants}/{event.maxParticipants}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="p-5">
+                          <div className="flex items-start justify-between mb-3">
+                            <h3 className="text-lg font-bold text-gray-900 line-clamp-2 group-hover:text-[#ab5244] transition-colors duration-200">
+                              {event.title}
+                            </h3>
+                          </div>
+                          
+                          <p className="text-gray-600 mb-3 line-clamp-2 text-sm">
+                            {event.description}
+                          </p>
+                          
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Calendar size={14} />
+                              <span>{formatDate(event.date)}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Clock size={14} />
+                              <span>{event.time}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <MapPin size={14} />
+                              <span className="line-clamp-1">{event.location}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold">
+                              {getCategoryDisplayName(event.category)}
+                            </span>
+                            
+                            {user.role === 'admin' && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => deleteEvent(event._id)}
+                                  className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded-lg hover:bg-red-200 transition duration-200 text-xs"
+                                >
+                                  <Trash2 size={12} />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Events Available</h3>
+                  <p className="text-gray-500 mb-4">Check back later for upcoming events</p>
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => setActiveTab('createEvent')}
+                      className="bg-[#ab5244] text-white px-6 py-3 rounded-xl hover:bg-[#8f4437] transition duration-200"
+                    >
+                      Create Your First Event
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Create Event Tab (Admin Only) */}
+          {activeTab === 'createEvent' && user.role === 'admin' && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <Plus className="text-[#ab5244]" size={32} />
+                <h2 className="text-3xl font-bold text-gray-900">Create New Event</h2>
+              </div>
+              
+              <form onSubmit={createEvent} className="max-w-4xl space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Event Title</label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={eventFormData.title}
+                      onChange={handleEventChange}
+                      className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+                      required
+                      placeholder="Enter event title"
+                    />
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea
+                      name="description"
+                      value={eventFormData.description}
+                      onChange={handleEventChange}
+                      rows="4"
+                      className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+                      required
+                      placeholder="Enter event description"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={eventFormData.date}
+                      onChange={handleEventChange}
+                      className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                    <input
+                      type="time"
+                      name="time"
+                      value={eventFormData.time}
+                      onChange={handleEventChange}
+                      className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={eventFormData.location}
+                      onChange={handleEventChange}
+                      className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+                      required
+                      placeholder="Enter event location"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select
+                      name="category"
+                      value={eventFormData.category}
+                      onChange={handleEventChange}
+                      className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition bg-white"
+                    >
+                      <option value="kirtan">Weekly Kirtan</option>
+                      <option value="festival">Festival Celebration</option>
+                      <option value="study">Study Group</option>
+                      <option value="seva">Seva Opportunity</option>
+                      <option value="other">Special Event</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Participants (0 for unlimited)</label>
+                    <input
+                      type="number"
+                      name="maxParticipants"
+                      value={eventFormData.maxParticipants}
+                      onChange={handleEventChange}
+                      className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Image URL (optional)</label>
+                    <input
+                      type="url"
+                      name="image"
+                      value={eventFormData.image}
+                      onChange={handleEventChange}
+                      className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-[#ab5244] text-white py-3 px-6 rounded-xl hover:bg-[#8f4437] transition duration-200 disabled:opacity-50 font-semibold flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Creating Event...
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={20} />
+                        Create Event
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('events')}
+                    className="bg-gray-500 text-white py-3 px-6 rounded-xl hover:bg-gray-600 transition duration-200 font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Users, Bell, Heart, Sparkles, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import  EventsList  from '../components/EventsList' 
 
 const LandingPage = () => {
   const [isAuthenticated] = useState(false);
@@ -245,62 +246,20 @@ const LandingPage = () => {
       </section>
 
       {/* Events Section */}
-      <section id="causes" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Find Popular Events and Make a Difference
-            </h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition group">
-              <div className="h-48 bg-gradient-to-br from-[#ab5244] to-[#8f4437] flex items-center justify-center">
-                <Calendar className="text-white" size={64} />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Weekly Kirtan</h3>
-                <p className="text-gray-600 mb-4">
-                  Join us for devotional singing and spiritual music every week
-                </p>
-                <button className="text-[#ab5244] font-semibold hover:underline">
-                  Learn More →
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition group">
-              <div className="h-48 bg-gradient-to-br from-orange-400 to-[#ab5244] flex items-center justify-center">
-                <Heart className="text-white" size={64} />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Festival Celebrations</h3>
-                <p className="text-gray-600 mb-4">
-                  Participate in major ISKCON festivals and special occasions
-                </p>
-                <button className="text-[#ab5244] font-semibold hover:underline">
-                  Learn More →
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition group">
-              <div className="h-48 bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                <Users className="text-white" size={64} />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Study Groups</h3>
-                <p className="text-gray-600 mb-4">
-                  Deepen your understanding through group discussions and learning
-                </p>
-                <button className="text-[#ab5244] font-semibold hover:underline">
-                  Learn More →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <section id="events" className="py-24 bg-white">
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="text-center mb-16">
+      <h2 className="text-4xl font-bold text-gray-900 mb-4">
+        Find Popular Events and Make a Difference
+      </h2>
+      <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+        Join our community in meaningful devotional events, spiritual gatherings, and service opportunities
+      </p>
+    </div>
+    
+    <EventsList />
+  </div>
+</section>
 
       {/* CTA Section */}
       <section className="relative py-24 bg-gradient-to-br from-[#ab5244] to-[#8f4437] overflow-hidden">
