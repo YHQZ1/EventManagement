@@ -276,7 +276,7 @@ const UserDashboard = () => {
               <div className="flex items-center space-x-6">
                 <div className="flex items-center gap-3">
                   <img 
-    src="./public/iskcon_logo.jpg" // or your logo path
+    src="/iskcon_logo.jpg" // or your logo path
     alt="ISKCON Logo"
     className="w-12 h-12 object-contain"
   />

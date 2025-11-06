@@ -111,7 +111,7 @@ const Auth = () => {
             <div className="bg-gradient-to-br from-[#ab5244] to-[#8f4437] rounded-3xl p-12 shadow-2xl transform hover:scale-105 transition duration-500">
               <div className="flex items-center gap-3 mb-8">
                 <img 
-    src="./public/iskcon_logo.jpg" // or your logo path
+    src="/iskcon_logo.jpg" // or your logo path
     alt="ISKCON Logo"
     className="w-12 h-12 object-contain"
   />
@@ -163,7 +163,7 @@ const Auth = () => {
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4 lg:hidden">
                   <img 
-    src="./public/iskcon_logo.jpg" // or your logo path
+    src="/iskcon_logo.jpg" // or your logo path
     alt="ISKCON Logo"
     className="w-12 h-12 object-contain"
   />

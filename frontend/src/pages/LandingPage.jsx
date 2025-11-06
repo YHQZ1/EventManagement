@@ -18,7 +18,7 @@ const LandingPage = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <img 
-    src="./public/iskcon_logo.jpg" // or your logo path
+    src="/iskcon_logo.jpg" // or your logo path
     alt="ISKCON Logo"
     className="w-12 h-12 object-contain"
   />
@@ -289,7 +289,7 @@ const LandingPage = () => {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <img 
-    src="./public/iskcon_logo.jpg" // or your logo path
+    src="/iskcon_logo.jpg" // or your logo path
     alt="ISKCON Logo"
     className="w-12 h-12 object-contain"
   />
