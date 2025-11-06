@@ -59,10 +59,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post('http://localhost:5001/api/auth/register', userData);
       
-      const { token, user: userData } = response.data;
+      const { token, user: newUser } = response.data; // Changed variable name
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
+      setUser(newUser); // Use the new variable name
       
       return { success: true };
     } catch (error) {
@@ -77,10 +77,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post('http://localhost:5001/api/auth/admin/register', userData);
       
-      const { token, user: userData } = response.data;
+      const { token, user: newUser } = response.data; // Changed variable name
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
+      setUser(newUser); // Use the new variable name
       
       return { success: true };
     } catch (error) {
