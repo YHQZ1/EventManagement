@@ -23,7 +23,12 @@ import {
   MapPin,
   Clock,
   Heart,
-  ArrowRight
+  ArrowRight,
+  Image as ImageIcon,
+  Star,
+  Send,
+  MailOpen,
+  Eye
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -43,16 +48,34 @@ const Dashboard = () => {
     maxParticipants: 0,
     image: ''
   });
+  const [interestedUsers, setInterestedUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [emailFormData, setEmailFormData] = useState({
+    subject: '',
+    message: '',
+    eventId: '',
+    recipientType: 'all' // 'all' or 'interested'
+  });
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailMessage, setEmailMessage] = useState('');
+  const [userInterests, setUserInterests] = useState(new Set()); // Track which events user is interested in
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Event functions
   const fetchEvents = async () => {
-    try {
-      const response = await axios.get('http://localhost:5001/api/events');
-      setEvents(response.data);
-    } catch (error) {
-      setMessage('Failed to fetch events');
+  try {
+    const response = await axios.get('http://localhost:5001/api/events');
+    setEvents(response.data);
+    
+    // Also fetch user interests if user is logged in
+    if (user) { // This null check is already there, but keep it
+      fetchUserInterests();
     }
-  };
+  } catch (error) {
+    setMessage('Failed to fetch events');
+  }
+};
 
   const createEvent = async (e) => {
     e.preventDefault();
@@ -93,6 +116,12 @@ const Dashboard = () => {
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+  if (!authLoading && !user) {
+    navigate('/auth');
+  }
+}, [user, authLoading, navigate]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -230,8 +259,143 @@ const Dashboard = () => {
     return categoryNames[category] || category;
   };
 
+    // Email management functions
+  const fetchInterestedUsers = async (eventId) => {
+    try {
+      const response = await axios.get(`http://localhost:5001/api/event-interests/${eventId}/interested-users`);
+      setInterestedUsers(response.data);
+      setSelectedEvent(eventId);
+      setActiveTab('interestedUsers');
+    } catch (error) {
+      setMessage('Failed to fetch interested users');
+    }
+  };
+
+  const fetchAllUsersForEmail = async () => {
+    try {
+      const response = await axios.get('http://localhost:5001/api/email/users');
+      setAllUsers(response.data);
+      setActiveTab('sendEmail');
+    } catch (error) {
+      setMessage('Failed to fetch users');
+    }
+  };
+
+  const handleEmailChange = (e) => {
+    setEmailFormData({
+      ...emailFormData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const sendEmail = async (e) => {
+  e.preventDefault();
+  
+  // Add this check at the beginning
+  if (!user) {
+    setEmailMessage('User not authenticated');
+    return;
+  }
+  
+  setEmailLoading(true);
+  setEmailMessage('');
+
+  try {
+    let recipients = [];
+    
+    if (emailFormData.recipientType === 'all') {
+      recipients = allUsers.map(user => user.email);
+    } else if (emailFormData.recipientType === 'interested' && selectedEvent) {
+      recipients = interestedUsers.map(interest => interest.user.email);
+    }
+
+    // Send emails using EmailJS
+    const emailPromises = recipients.map(async (email) => {
+      const templateParams = {
+        to_email: email,
+        subject: emailFormData.subject,
+        message: emailFormData.message,
+        event_title: events.find(e => e._id === selectedEvent)?.title || 'General Announcement',
+        event_date: events.find(e => e._id === selectedEvent)?.date ? 
+          formatDate(events.find(e => e._id === selectedEvent).date) : 'N/A'
+      };
+
+      const { sendBroadcastEmail, sendEventNotification } = await import('../utils/emailjs');
+      
+      if (emailFormData.recipientType === 'all') {
+        return sendBroadcastEmail(templateParams);
+      } else {
+        return sendEventNotification(templateParams);
+      }
+    });
+
+    const results = await Promise.allSettled(emailPromises);
+    
+    const successful = results.filter(result => result.status === 'fulfilled' && result.value.success).length;
+    const failed = results.filter(result => result.status === 'rejected' || !result.value?.success).length;
+
+    setEmailMessage(`Emails sent successfully! ${successful} delivered, ${failed} failed`);
+    
+    // Reset form
+    setEmailFormData({
+      subject: '',
+      message: '',
+      eventId: '',
+      recipientType: 'all'
+    });
+
+  } catch (error) {
+    setEmailMessage('Failed to send emails');
+  } finally {
+    setEmailLoading(false);
+  }
+};
+
+    // User interest functions
+  const fetchUserInterests = async () => {
+    try {
+      const response = await axios.get('http://localhost:5001/api/event-interests/user/interested');
+      const interestedEventIds = new Set(response.data.map(item => item.event._id));
+      setUserInterests(interestedEventIds);
+    } catch (error) {
+      console.error('Error fetching user interests:', error);
+    }
+  };
+
+  const handleInterestToggle = async (eventId) => {
+    try {
+      const isCurrentlyInterested = userInterests.has(eventId);
+      
+      if (isCurrentlyInterested) {
+        await axios.delete(`http://localhost:5001/api/event-interests/${eventId}/interested`);
+        setUserInterests(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(eventId);
+          return newSet;
+        });
+        setMessage('Removed interest from event');
+      } else {
+        await axios.post(`http://localhost:5001/api/event-interests/${eventId}/interested`);
+        setUserInterests(prev => new Set(prev).add(eventId));
+        setMessage('Marked as interested in event');
+      }
+
+      // Refresh events to update interested count
+      fetchEvents();
+    } catch (error) {
+      console.error('Error toggling interest:', error);
+      setMessage('Failed to update interest');
+    }
+  };
+  useEffect(() => {
+    if (user) {
+      fetchUserInterests();
+    }
+  }, [user]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-stone-50 to-orange-100 relative overflow-hidden">
+      
       {/* Decorative elements */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#ab5244] opacity-5 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-300 opacity-10 rounded-full blur-3xl"></div>
@@ -273,91 +437,104 @@ const Dashboard = () => {
         </header>
 
         {/* Navigation Tabs */}
-        <div className="bg-white/60 backdrop-blur-sm border-b border-orange-200/30">
-          <div className="max-w-7xl mx-auto">
-            <nav className="flex space-x-1 p-2">
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                  activeTab === 'profile'
-                    ? 'bg-[#ab5244] text-white shadow-lg'
-                    : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
-                }`}
-              >
-                <User size={18} />
-                My Profile
-              </button>
+        {/* Navigation Tabs */}
+<div className="bg-white/60 backdrop-blur-sm border-b border-orange-200/30">
+  <div className="max-w-7xl mx-auto">
+    <nav className="flex space-x-1 p-2">
+      <button
+        onClick={() => setActiveTab('profile')}
+        className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+          activeTab === 'profile'
+            ? 'bg-[#ab5244] text-white shadow-lg'
+            : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+        }`}
+      >
+        <User size={18} />
+        My Profile
+      </button>
 
-              {/* Events tab for all users */}
-              <button
-                onClick={() => {
-                  setActiveTab('events');
-                  fetchEvents();
-                }}
-                className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                  activeTab === 'events'
-                    ? 'bg-[#ab5244] text-white shadow-lg'
-                    : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
-                }`}
-              >
-                <Calendar size={18} />
-                Events
-              </button>
+      {/* Events tab for all users */}
+      <button
+        onClick={() => {
+          setActiveTab('events');
+          fetchEvents();
+        }}
+        className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+          activeTab === 'events'
+            ? 'bg-[#ab5244] text-white shadow-lg'
+            : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+        }`}
+      >
+        <Calendar size={18} />
+        Events
+      </button>
 
-              {user.role === 'admin' && (
-                <>
-                  <button
-                    onClick={() => {
-                      setActiveTab('stats');
-                      fetchStats();
-                    }}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === 'stats'
-                        ? 'bg-[#ab5244] text-white shadow-lg'
-                        : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
-                    }`}
-                  >
-                    <BarChart3 size={18} />
-                    Statistics
-                  </button>
-                  <button
-                    onClick={fetchAllUsers}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === 'users'
-                        ? 'bg-[#ab5244] text-white shadow-lg'
-                        : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
-                    }`}
-                  >
-                    <Users size={18} />
-                    Manage Users
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('adminRegister')}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === 'adminRegister'
-                        ? 'bg-[#ab5244] text-white shadow-lg'
-                        : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
-                    }`}
-                  >
-                    <UserPlus size={18} />
-                    Register Admin
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('createEvent')}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === 'createEvent'
-                        ? 'bg-[#ab5244] text-white shadow-lg'
-                        : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
-                    }`}
-                  >
-                    <Plus size={18} />
-                    Create Event
-                  </button>
-                </>
-              )}
-            </nav>
-          </div>
-        </div>
+      {user.role === 'admin' && (
+        <>
+          <button
+            onClick={() => {
+              setActiveTab('stats');
+              fetchStats();
+            }}
+            className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+              activeTab === 'stats'
+                ? 'bg-[#ab5244] text-white shadow-lg'
+                : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+            }`}
+          >
+            <BarChart3 size={18} />
+            Statistics
+          </button>
+          <button
+            onClick={fetchAllUsers}
+            className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+              activeTab === 'users'
+                ? 'bg-[#ab5244] text-white shadow-lg'
+                : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+            }`}
+          >
+            <Users size={18} />
+            Manage Users
+          </button>
+          <button
+            onClick={() => setActiveTab('adminRegister')}
+            className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+              activeTab === 'adminRegister'
+                ? 'bg-[#ab5244] text-white shadow-lg'
+                : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+            }`}
+          >
+            <UserPlus size={18} />
+            Register Admin
+          </button>
+          <button
+            onClick={() => setActiveTab('createEvent')}
+            className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+              activeTab === 'createEvent'
+                ? 'bg-[#ab5244] text-white shadow-lg'
+                : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+            }`}
+          >
+            <Plus size={18} />
+            Create Event
+          </button>
+          {/* New Email Management Tabs */}
+          <button
+            onClick={fetchAllUsersForEmail}
+            className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+              activeTab === 'sendEmail'
+                ? 'bg-[#ab5244] text-white shadow-lg'
+                : 'text-gray-600 hover:text-[#ab5244] hover:bg-white/50'
+            }`}
+          >
+            <Send size={18} />
+            Send Email
+          </button>
+        </>
+      )}
+    </nav>
+  </div>
+</div>
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto py-8 px-4">
@@ -420,130 +597,205 @@ const Dashboard = () => {
                       <p className="mt-1 text-xl font-semibold text-gray-900">{user.phone}</p>
                     </div>
                   )}
+                  {/* Add this to the Profile Tab, after the existing profile sections */}
+<div className="md:col-span-2">
+  <div className="bg-gradient-to-br from-orange-50 to-stone-50 p-6 rounded-2xl border border-orange-200">
+    <div className="flex items-center gap-3 mb-4">
+      <Star className="text-[#ab5244]" size={24} />
+      <h3 className="text-xl font-semibold text-gray-900">My Interested Events</h3>
+    </div>
+    {userInterests.size > 0 ? (
+      <p className="text-gray-600">
+        You're interested in <span className="font-semibold text-[#ab5244]">{userInterests.size}</span> events
+      </p>
+    ) : (
+      <p className="text-gray-600">You haven't marked any events as interested yet.</p>
+    )}
+  </div>
+</div>
                 </div>
               </div>
             </div>
+            
           )}
 
           {/* Events Tab (All Users) */}
-          {activeTab === 'events' && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
-              <div className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-3">
-                  <Calendar className="text-[#ab5244]" size={32} />
-                  <h2 className="text-3xl font-bold text-gray-900">
-                    {user.role === 'admin' ? 'Manage Events' : 'Upcoming Events'}
-                  </h2>
+          {/* Events Tab (All Users) */}
+{activeTab === 'events' && (
+  <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+    <div className="flex justify-between items-center mb-8">
+      <div className="flex items-center gap-3">
+        <Calendar className="text-[#ab5244]" size={32} />
+        <h2 className="text-3xl font-bold text-gray-900">
+          {user.role === 'admin' ? 'Manage Events' : 'Upcoming Events'}
+        </h2>
+      </div>
+      <span className="bg-orange-100 text-orange-800 px-4 py-2 rounded-full font-semibold">
+        {events.length} events
+      </span>
+    </div>
+    
+    {events.length > 0 ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {events.map((event) => {
+          const IconComponent = categoryIcons[event.category] || Calendar;
+          const gradientClass = categoryColors[event.category] || 'from-[#ab5244] to-[#8f4437]';
+          const hasImage = event.image && event.image.trim() !== '';
+          const isInterested = userInterests.has(event._id);
+          
+          return (
+            <div 
+              key={event._id} 
+              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 group transform hover:-translate-y-1 border border-orange-200"
+            >
+              {/* Image or Gradient Background */}
+              <div className={`h-40 relative overflow-hidden ${!hasImage ? `bg-gradient-to-br ${gradientClass}` : ''}`}>
+                {hasImage ? (
+                  <>
+                    <img 
+                      src={event.image} 
+                      alt={event.title}
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        const fallback = e.target.nextSibling;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                    {/* Fallback gradient background */}
+                    <div 
+                      className={`absolute inset-0 bg-gradient-to-br ${gradientClass} flex items-center justify-center hidden`}
+                    >
+                      <IconComponent className="text-white transform group-hover:scale-110 transition-transform duration-300" size={48} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <IconComponent className="text-white transform group-hover:scale-110 transition-transform duration-300" size={48} />
+                  </div>
+                )}
+                
+                {/* Event status badge */}
+                <div className="absolute top-3 right-3">
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    event.status === 'upcoming' 
+                      ? 'bg-green-100 text-green-800' 
+                      : event.status === 'ongoing'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                  </span>
                 </div>
-                <span className="bg-orange-100 text-orange-800 px-4 py-2 rounded-full font-semibold">
-                  {events.length} events
-                </span>
+
+                {/* Interested count */}
+                <div className="absolute bottom-3 left-3">
+                  <span className="bg-black/30 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                    {event.interestedCount || 0} interested
+                  </span>
+                </div>
+
+                {/* Image indicator */}
+                {hasImage && (
+                  <div className="absolute bottom-3 right-3">
+                    <span className="bg-black/30 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                      <ImageIcon size={12} />
+                      Photo
+                    </span>
+                  </div>
+                )}
               </div>
               
-              {events.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {events.map((event) => {
-                    const IconComponent = categoryIcons[event.category] || Calendar;
-                    const gradientClass = categoryColors[event.category] || 'from-[#ab5244] to-[#8f4437]';
-                    
-                    return (
-                      <div 
-                        key={event._id} 
-                        className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 group transform hover:-translate-y-1 border border-orange-200"
-                      >
-                        <div className={`h-40 bg-gradient-to-br ${gradientClass} flex items-center justify-center relative overflow-hidden`}>
-                          <IconComponent className="text-white transform group-hover:scale-110 transition-transform duration-300" size={48} />
-                          
-                          {/* Event status badge */}
-                          <div className="absolute top-3 right-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                              event.status === 'upcoming' 
-                                ? 'bg-green-100 text-green-800' 
-                                : event.status === 'ongoing'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-                            </span>
-                          </div>
-
-                          {/* Participants count */}
-                          {event.maxParticipants > 0 && (
-                            <div className="absolute bottom-3 left-3">
-                              <span className="bg-black/30 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                                {event.currentParticipants}/{event.maxParticipants}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="p-5">
-                          <div className="flex items-start justify-between mb-3">
-                            <h3 className="text-lg font-bold text-gray-900 line-clamp-2 group-hover:text-[#ab5244] transition-colors duration-200">
-                              {event.title}
-                            </h3>
-                          </div>
-                          
-                          <p className="text-gray-600 mb-3 line-clamp-2 text-sm">
-                            {event.description}
-                          </p>
-                          
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <Calendar size={14} />
-                              <span>{formatDate(event.date)}</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <Clock size={14} />
-                              <span>{event.time}</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <MapPin size={14} />
-                              <span className="line-clamp-1">{event.location}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold">
-                              {getCategoryDisplayName(event.category)}
-                            </span>
-                            
-                            {user.role === 'admin' && (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => deleteEvent(event._id)}
-                                  className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded-lg hover:bg-red-200 transition duration-200 text-xs"
-                                >
-                                  <Trash2 size={12} />
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="text-lg font-bold text-gray-900 line-clamp-2 group-hover:text-[#ab5244] transition-colors duration-200">
+                    {event.title}
+                  </h3>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Events Available</h3>
-                  <p className="text-gray-500 mb-4">Check back later for upcoming events</p>
-                  {user.role === 'admin' && (
+                
+                <p className="text-gray-600 mb-3 line-clamp-2 text-sm">
+                  {event.description}
+                </p>
+                
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Calendar size={14} />
+                    <span>{formatDate(event.date)}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Clock size={14} />
+                    <span>{event.time}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <MapPin size={14} />
+                    <span className="line-clamp-1">{event.location}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold">
+                    {getCategoryDisplayName(event.category)}
+                  </span>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Interest button for all users */}
                     <button
-                      onClick={() => setActiveTab('createEvent')}
-                      className="bg-[#ab5244] text-white px-6 py-3 rounded-xl hover:bg-[#8f4437] transition duration-200"
+                      onClick={() => handleInterestToggle(event._id)}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-lg transition duration-200 text-sm font-semibold ${
+                        isInterested
+                          ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
-                      Create Your First Event
+                      <Star size={16} fill={isInterested ? "currentColor" : "none"} />
+                      {isInterested ? 'Interested' : 'Mark Interest'}
                     </button>
-                  )}
+                    
+                    {/* Admin actions */}
+                    {user.role === 'admin' && (
+                      <>
+                        <button
+                          onClick={() => fetchInterestedUsers(event._id)}
+                          className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-200 transition duration-200 text-xs"
+                        >
+                          <Eye size={12} />
+                          View
+                        </button>
+                        <button
+                          onClick={() => deleteEvent(event._id)}
+                          className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded-lg hover:bg-red-200 transition duration-200 text-xs"
+                        >
+                          <Trash2 size={12} />
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
-          )}
+          );
+        })}
+      </div>
+    ) : (
+      <div className="text-center py-12">
+        <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">No Events Available</h3>
+        <p className="text-gray-500 mb-4">Check back later for upcoming events</p>
+        {user.role === 'admin' && (
+          <button
+            onClick={() => setActiveTab('createEvent')}
+            className="bg-[#ab5244] text-white px-6 py-3 rounded-xl hover:bg-[#8f4437] transition duration-200"
+          >
+            Create Your First Event
+          </button>
+        )}
+      </div>
+    )}
+  </div>
+)}
 
           {/* Create Event Tab (Admin Only) */}
           {activeTab === 'createEvent' && user.role === 'admin' && (
@@ -943,6 +1195,214 @@ const Dashboard = () => {
               </form>
             </div>
           )}
+          {/* Interested Users Tab (Admin Only) */}
+{activeTab === 'interestedUsers' && user.role === 'admin' && (
+  <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+    <div className="flex justify-between items-center mb-8">
+      <div className="flex items-center gap-3">
+        <Users className="text-[#ab5244]" size={32} />
+        <h2 className="text-3xl font-bold text-gray-900">Interested Users</h2>
+      </div>
+      <div className="flex items-center gap-4">
+        <span className="bg-orange-100 text-orange-800 px-4 py-2 rounded-full font-semibold">
+          {interestedUsers.length} users interested
+        </span>
+        <button
+          onClick={() => {
+            setEmailFormData({
+              subject: '',
+              message: '',
+              eventId: selectedEvent,
+              recipientType: 'interested'
+            });
+            setActiveTab('sendEmail');
+          }}
+          className="bg-[#ab5244] text-white px-4 py-2 rounded-xl hover:bg-[#8f4437] flex items-center gap-2 transition duration-200"
+        >
+          <Send size={18} />
+          Email Interested Users
+        </button>
+      </div>
+    </div>
+    
+    {interestedUsers.length > 0 ? (
+      <div className="overflow-hidden rounded-2xl border border-orange-200 shadow-lg">
+        <table className="min-w-full divide-y divide-orange-200">
+          <thead className="bg-gradient-to-r from-orange-50 to-stone-50">
+            <tr>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 uppercase">User</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 uppercase">Email</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 uppercase">Phone</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 uppercase">Notification Preference</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 uppercase">Interested Since</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-orange-100">
+            {interestedUsers.map((interest) => (
+              <tr key={interest._id} className="hover:bg-orange-50/50 transition duration-150">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#ab5244] to-[#8f4437] rounded-full flex items-center justify-center text-white font-semibold">
+                      {interest.user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">{interest.user.name}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">{interest.user.email}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{interest.user.phone || 'N/A'}</td>
+                <td className="px-6 py-4">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold capitalize">
+                    {interest.user.notificationPreference}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {new Date(interest.createdAt).toLocaleDateString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <div className="text-center py-12">
+        <Users className="mx-auto text-gray-400 mb-4" size={48} />
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">No Interested Users</h3>
+        <p className="text-gray-500">No users have marked interest in this event yet.</p>
+      </div>
+    )}
+  </div>
+)}
+
+{/* Send Email Tab (Admin Only) */}
+{activeTab === 'sendEmail' && user.role === 'admin' && (
+  <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+    <div className="flex items-center gap-3 mb-8">
+      <Send className="text-[#ab5244]" size={32} />
+      <h2 className="text-3xl font-bold text-gray-900">Send Email</h2>
+    </div>
+
+    {emailMessage && (
+      <div className={`mb-6 p-4 rounded-xl border ${
+        emailMessage.includes('successful') 
+          ? 'bg-green-50 text-green-700 border-green-200' 
+          : 'bg-red-50 text-red-700 border-red-200'
+      }`}>
+        <p className="font-medium">{emailMessage}</p>
+      </div>
+    )}
+
+    <form onSubmit={sendEmail} className="max-w-4xl space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Type</label>
+          <select
+            name="recipientType"
+            value={emailFormData.recipientType}
+            onChange={handleEmailChange}
+            className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition bg-white"
+          >
+            <option value="all">All Users ({allUsers.length} users)</option>
+            <option value="interested" disabled={!selectedEvent}>
+              Interested Users ({interestedUsers.length} users){!selectedEvent && ' - Select an event first'}
+            </option>
+          </select>
+        </div>
+
+        {emailFormData.recipientType === 'interested' && (
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Event</label>
+            <select
+              name="eventId"
+              value={emailFormData.eventId}
+              onChange={handleEmailChange}
+              className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition bg-white"
+            >
+              <option value="">Select an event</option>
+              {events.map(event => (
+                <option key={event._id} value={event._id}>
+                  {event.title} ({event.interestedCount || 0} interested)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+          <input
+            type="text"
+            name="subject"
+            value={emailFormData.subject}
+            onChange={handleEmailChange}
+            className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+            required
+            placeholder="Enter email subject"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+          <textarea
+            name="message"
+            value={emailFormData.message}
+            onChange={handleEmailChange}
+            rows="8"
+            className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#ab5244] focus:border-transparent transition"
+            required
+            placeholder="Enter your message here..."
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        <button
+          type="submit"
+          disabled={emailLoading}
+          className="bg-[#ab5244] text-white py-3 px-6 rounded-xl hover:bg-[#8f4437] transition duration-200 disabled:opacity-50 font-semibold flex items-center justify-center gap-2"
+        >
+          {emailLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Sending Emails...
+            </>
+          ) : (
+            <>
+              <Send size={20} />
+              Send Email
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('events')}
+          className="bg-gray-500 text-white py-3 px-6 rounded-xl hover:bg-gray-600 transition duration-200 font-semibold"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+
+    {/* Recipient Preview */}
+    <div className="mt-8 p-6 bg-orange-50 rounded-xl border border-orange-200">
+      <h3 className="text-lg font-semibold text-gray-900 mb-3">Recipient Preview</h3>
+      <p className="text-gray-600">
+        This email will be sent to{' '}
+        <span className="font-semibold">
+          {emailFormData.recipientType === 'all' 
+            ? `all ${allUsers.length} users` 
+            : `${interestedUsers.length} interested users`}
+        </span>
+        {emailFormData.recipientType === 'interested' && emailFormData.eventId && (
+          <span> for the selected event</span>
+        )}
+        .
+      </p>
+    </div>
+  </div>
+)}
         </main>
       </div>
     </div>
