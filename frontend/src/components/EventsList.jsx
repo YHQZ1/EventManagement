@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Calendar, Heart, Users, MapPin, Clock, ArrowRight } from 'lucide-react';
+import { Calendar, Heart, Users, MapPin, Clock, ArrowRight, Image as ImageIcon, Star } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const EventsList = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [interestedEvents, setInterestedEvents] = useState(new Set());
+  const { user, isAuthenticated } = useAuth();
 
   // Category icons mapping
   const categoryIcons = {
@@ -27,7 +30,10 @@ const EventsList = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+    if (isAuthenticated) {
+      fetchUserInterests();
+    }
+  }, [isAuthenticated]);
 
   const fetchEvents = async () => {
     try {
@@ -39,6 +45,45 @@ const EventsList = () => {
       setError('Failed to load events');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserInterests = async () => {
+    try {
+      const response = await axios.get('http://localhost:5001/api/event-interests/user/interested');
+      const interestedEventIds = new Set(response.data.map(item => item.event._id));
+      setInterestedEvents(interestedEventIds);
+    } catch (error) {
+      console.error('Error fetching user interests:', error);
+    }
+  };
+
+  const handleInterestToggle = async (eventId) => {
+    if (!isAuthenticated) {
+      alert('Please login to mark events as interested');
+      return;
+    }
+
+    try {
+      const isCurrentlyInterested = interestedEvents.has(eventId);
+      
+      if (isCurrentlyInterested) {
+        await axios.delete(`http://localhost:5001/api/event-interests/${eventId}/interested`);
+        setInterestedEvents(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(eventId);
+          return newSet;
+        });
+      } else {
+        await axios.post(`http://localhost:5001/api/event-interests/${eventId}/interested`);
+        setInterestedEvents(prev => new Set(prev).add(eventId));
+      }
+
+      // Refresh events to update interested count
+      fetchEvents();
+    } catch (error) {
+      console.error('Error toggling interest:', error);
+      alert('Failed to update interest');
     }
   };
 
@@ -110,14 +155,40 @@ const EventsList = () => {
       {events.map((event) => {
         const IconComponent = categoryIcons[event.category] || Calendar;
         const gradientClass = categoryColors[event.category] || 'from-[#ab5244] to-[#8f4437]';
+        const hasImage = event.image && event.image.trim() !== '';
+        const isInterested = interestedEvents.has(event._id);
         
         return (
           <div 
             key={event._id} 
             className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 group transform hover:-translate-y-1"
           >
-            <div className={`h-48 bg-gradient-to-br ${gradientClass} flex items-center justify-center relative overflow-hidden`}>
-              <IconComponent className="text-white transform group-hover:scale-110 transition-transform duration-300" size={64} />
+            {/* Image or Gradient Background */}
+            <div className={`h-48 relative overflow-hidden ${!hasImage ? `bg-gradient-to-br ${gradientClass}` : ''}`}>
+              {hasImage ? (
+                <>
+                  <img 
+                    src={event.image} 
+                    alt={event.title}
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      const fallback = e.target.nextSibling;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                  {/* Fallback gradient background */}
+                  <div 
+                    className={`absolute inset-0 bg-gradient-to-br ${gradientClass} flex items-center justify-center hidden`}
+                  >
+                    <IconComponent className="text-white transform group-hover:scale-110 transition-transform duration-300" size={64} />
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <IconComponent className="text-white transform group-hover:scale-110 transition-transform duration-300" size={64} />
+                </div>
+              )}
               
               {/* Event status badge */}
               <div className="absolute top-4 right-4">
@@ -132,11 +203,19 @@ const EventsList = () => {
                 </span>
               </div>
 
-              {/* Participants count */}
-              {event.maxParticipants > 0 && (
-                <div className="absolute bottom-4 left-4">
-                  <span className="bg-black/30 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                    {event.currentParticipants}/{event.maxParticipants}
+              {/* Interested count */}
+              <div className="absolute bottom-4 left-4">
+                <span className="bg-black/30 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                  {event.interestedCount || 0} interested
+                </span>
+              </div>
+
+              {/* Image indicator */}
+              {hasImage && (
+                <div className="absolute bottom-4 right-4">
+                  <span className="bg-black/30 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                    <ImageIcon size={12} />
+                    Photo
                   </span>
                 </div>
               )}
@@ -175,10 +254,19 @@ const EventsList = () => {
                   {getCategoryDisplayName(event.category)}
                 </span>
                 
-                <button className="text-[#ab5244] font-semibold hover:text-[#8f4437] flex items-center gap-1 transition-colors duration-200 group/btn">
-                  Learn More
-                  <ArrowRight size={16} className="transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleInterestToggle(event._id)}
+                    className={`flex items-center gap-1 px-3 py-2 rounded-lg transition duration-200 text-sm font-semibold ${
+                      isInterested
+                        ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Star size={16} fill={isInterested ? "currentColor" : "none"} />
+                    {isInterested ? 'Interested' : 'Mark Interest'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -188,4 +276,4 @@ const EventsList = () => {
   );
 };
 
-export default EventsList;
+export default EventsList;  

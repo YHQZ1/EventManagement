@@ -52,7 +52,15 @@ const eventSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  interestedUsers: [{
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User'
+}],
+interestedCount: {
+  type: Number,
+  default: 0
+}
 }, {
   timestamps: true
 });

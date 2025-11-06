@@ -23,7 +23,7 @@ const LandingPage = () => {
             <nav className="hidden md:flex items-center gap-8 text-gray-700">
               <button onClick={() => handleNavClick('about')} className="hover:text-[#ab5244] transition">About</button>
               <button onClick={() => handleNavClick('features')} className="hover:text-[#ab5244] transition">Features</button>
-              <button onClick={() => handleNavClick('causes')} className="hover:text-[#ab5244] transition">Events</button>
+              <button onClick={() => handleNavClick('events')} className="hover:text-[#ab5244] transition">Events</button>
             </nav>
             <button className="bg-[#ab5244] text-white px-6 py-2.5 rounded-full hover:bg-[#8f4437] transition shadow-md">
               {isAuthenticated ? (

@@ -7,6 +7,9 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/events.js'; // Add this line
 
+import eventInterestRoutes from './routes/eventInterest.js';
+import emailRoutes from './routes/email.js';
+
 dotenv.config();
 
 const app = express();
@@ -18,6 +21,9 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes); // Add this line
+
+app.use('/api/event-interests', eventInterestRoutes);
+app.use('/api/email', emailRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
