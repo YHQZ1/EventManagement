@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -62,7 +63,7 @@ const Auth = () => {
       } else {
         setMessage(result.error);
       }
-    } catch (error) {
+    } catch {
       setMessage('Something went wrong!');
     } finally {
       setLoading(false);

@@ -1,7 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
+
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -21,9 +24,9 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          const response = await axios.get('http://localhost:5001/api/auth/me');
+          const response = await axios.get(`${API_BASE_URL}/api/auth/me`);
           setUser(response.data);
-        } catch (error) {
+        } catch {
           console.error('Auth check failed');
           localStorage.removeItem('token');
           delete axios.defaults.headers.common['Authorization'];
@@ -36,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/login', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email,
         password
       });
@@ -57,12 +60,12 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/register', userData);
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, userData);
       
-      const { token, user: newUser } = response.data; // Changed variable name
+      const { token, user: newUser } = response.data;
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(newUser); // Use the new variable name
+      setUser(newUser);
       
       return { success: true };
     } catch (error) {
@@ -75,12 +78,12 @@ export const AuthProvider = ({ children }) => {
 
   const registerAdmin = async (userData) => {
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/admin/register', userData);
+      const response = await axios.post(`${API_BASE_URL}/api/auth/admin/register`, userData);
       
-      const { token, user: newUser } = response.data; // Changed variable name
+      const { token, user: newUser } = response.data;
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(newUser); // Use the new variable name
+      setUser(newUser);
       
       return { success: true };
     } catch (error) {
