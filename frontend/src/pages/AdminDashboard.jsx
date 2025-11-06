@@ -28,7 +28,7 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
 
-const Dashboard = () => {
+const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
@@ -466,24 +466,20 @@ const Dashboard = () => {
                 {isInterested ? "Interested" : "Mark Interest"}
               </button>
 
-              {user.role === "admin" && (
-                <>
-                  <button
-                    onClick={() => fetchInterestedUsers(event._id)}
-                    className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-200 transition duration-200 text-xs"
-                  >
-                    <Eye size={12} />
-                    View
-                  </button>
-                  <button
-                    onClick={() => deleteEvent(event._id)}
-                    className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded-lg hover:bg-red-200 transition duration-200 text-xs"
-                  >
-                    <Trash2 size={12} />
-                    Delete
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => fetchInterestedUsers(event._id)}
+                className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-200 transition duration-200 text-xs"
+              >
+                <Eye size={12} />
+                View
+              </button>
+              <button
+                onClick={() => deleteEvent(event._id)}
+                className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded-lg hover:bg-red-200 transition duration-200 text-xs"
+              >
+                <Trash2 size={12} />
+                Delete
+              </button>
             </div>
           </div>
         </div>
@@ -502,20 +498,18 @@ const Dashboard = () => {
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-6">
                 <div className="flex items-center gap-3">
-                  <Sparkles className="text-[#ab5244]" size={32} />
+                  <img 
+    src="./public/iskcon_logo.jpg" // or your logo path
+    alt="ISKCON Logo"
+    className="w-12 h-12 object-contain"
+  />
                   <h1 className="text-2xl font-bold text-gray-900">
-                    ISKCON Dashboard
+                    ISKCON Admin Dashboard
                   </h1>
                 </div>
-                <div
-                  className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 ${
-                    user.role === "admin"
-                      ? "bg-red-100 text-red-800 border border-red-200"
-                      : "bg-blue-100 text-blue-800 border border-blue-200"
-                  }`}
-                >
-                  {user.role === "admin" && <Crown size={16} />}
-                  {user.role.toUpperCase()}
+                <div className="px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 bg-red-100 text-red-800 border border-red-200">
+                  <Crown size={16} />
+                  ADMIN
                 </div>
               </div>
               <div className="flex items-center space-x-4">
@@ -562,71 +556,59 @@ const Dashboard = () => {
                 }`}
               >
                 <Calendar size={18} />
-                Events
+                Manage Events
               </button>
 
-              {user.role === "admin" && (
-                <>
-                  <button
-                    onClick={() => {
-                      setActiveTab("stats");
-                      fetchStats();
-                    }}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === "stats"
-                        ? "bg-[#ab5244] text-white shadow-lg"
-                        : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
-                    }`}
-                  >
-                    <BarChart3 size={18} />
-                    Statistics
-                  </button>
-                  <button
-                    onClick={fetchAllUsers}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === "users"
-                        ? "bg-[#ab5244] text-white shadow-lg"
-                        : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
-                    }`}
-                  >
-                    <Users size={18} />
-                    Manage Users
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("adminRegister")}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === "adminRegister"
-                        ? "bg-[#ab5244] text-white shadow-lg"
-                        : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
-                    }`}
-                  >
-                    <UserPlus size={18} />
-                    Register Admin
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("createEvent")}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === "createEvent"
-                        ? "bg-[#ab5244] text-white shadow-lg"
-                        : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
-                    }`}
-                  >
-                    <Plus size={18} />
-                    Create Event
-                  </button>
-                  <button
-                    onClick={fetchAllUsersForEmail}
-                    className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
-                      activeTab === "sendEmail"
-                        ? "bg-[#ab5244] text-white shadow-lg"
-                        : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
-                    }`}
-                  >
-                    <Send size={18} />
-                    Send Email
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => {
+                  setActiveTab("stats");
+                  fetchStats();
+                }}
+                className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+                  activeTab === "stats"
+                    ? "bg-[#ab5244] text-white shadow-lg"
+                    : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
+                }`}
+              >
+                <BarChart3 size={18} />
+                Statistics
+              </button>
+
+              <button
+                onClick={fetchAllUsers}
+                className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+                  activeTab === "users"
+                    ? "bg-[#ab5244] text-white shadow-lg"
+                    : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
+                }`}
+              >
+                <Users size={18} />
+                Manage Users
+              </button>
+
+              <button
+                onClick={() => setActiveTab("createEvent")}
+                className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+                  activeTab === "createEvent"
+                    ? "bg-[#ab5244] text-white shadow-lg"
+                    : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
+                }`}
+              >
+                <Plus size={18} />
+                Create Event
+              </button>
+
+              <button
+                onClick={fetchAllUsersForEmail}
+                className={`flex items-center gap-2 py-3 px-6 rounded-xl font-medium text-sm transition duration-200 ${
+                  activeTab === "sendEmail"
+                    ? "bg-[#ab5244] text-white shadow-lg"
+                    : "text-gray-600 hover:text-[#ab5244] hover:bg-white/50"
+                }`}
+              >
+                <Send size={18} />
+                Send Email
+              </button>
             </nav>
           </div>
         </div>
@@ -657,7 +639,7 @@ const Dashboard = () => {
               <div className="flex items-center gap-3 mb-8">
                 <User className="text-[#ab5244]" size={32} />
                 <h2 className="text-3xl font-bold text-gray-900">
-                  User Profile
+                  Admin Profile
                 </h2>
               </div>
 
@@ -727,9 +709,7 @@ const Dashboard = () => {
                 <div className="flex items-center gap-3">
                   <Calendar className="text-[#ab5244]" size={32} />
                   <h2 className="text-3xl font-bold text-gray-900">
-                    {user.role === "admin"
-                      ? "Manage Events"
-                      : "Upcoming Events"}
+                    Manage Events
                   </h2>
                 </div>
                 <span className="bg-orange-100 text-orange-800 px-4 py-2 rounded-full font-semibold">
@@ -748,22 +728,20 @@ const Dashboard = () => {
                     No Events Available
                   </h3>
                   <p className="text-gray-500 mb-4">
-                    Check back later for upcoming events
+                    Create your first event to get started
                   </p>
-                  {user.role === "admin" && (
-                    <button
-                      onClick={() => setActiveTab("createEvent")}
-                      className="bg-[#ab5244] text-white px-6 py-3 rounded-xl hover:bg-[#8f4437] transition duration-200"
-                    >
-                      Create Your First Event
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setActiveTab("createEvent")}
+                    className="bg-[#ab5244] text-white px-6 py-3 rounded-xl hover:bg-[#8f4437] transition duration-200"
+                  >
+                    Create Your First Event
+                  </button>
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === "createEvent" && user.role === "admin" && (
+          {activeTab === "createEvent" && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
               <div className="flex items-center gap-3 mb-8">
                 <Plus className="text-[#ab5244]" size={32} />
@@ -925,7 +903,7 @@ const Dashboard = () => {
             </div>
           )}
 
-          {activeTab === "stats" && user.role === "admin" && (
+          {activeTab === "stats" && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
               <div className="flex items-center gap-3 mb-8">
                 <BarChart3 className="text-[#ab5244]" size={32} />
@@ -1003,7 +981,7 @@ const Dashboard = () => {
             </div>
           )}
 
-          {activeTab === "users" && user.role === "admin" && (
+          {activeTab === "users" && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
               <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-3">
@@ -1128,7 +1106,7 @@ const Dashboard = () => {
             </div>
           )}
 
-          {activeTab === "interestedUsers" && user.role === "admin" && (
+          {activeTab === "interestedUsers" && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
               <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-3">
@@ -1232,7 +1210,7 @@ const Dashboard = () => {
             </div>
           )}
 
-          {activeTab === "sendEmail" && user.role === "admin" && (
+          {activeTab === "sendEmail" && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
               <div className="flex items-center gap-3 mb-8">
                 <Send className="text-[#ab5244]" size={32} />
@@ -1381,4 +1359,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;
